@@ -1,0 +1,5 @@
+*.sw[opn]
+*~
+
+target/
+/project/sbt-launch-*.jar
