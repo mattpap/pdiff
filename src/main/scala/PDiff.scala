@@ -20,6 +20,10 @@ package io.continuum.pdiff
  * MA 02111-1307 USA
  */
 
+import java.io.File
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
+
 object PDiff {
     val MAX_PYR_LEVELS = 8
 
@@ -77,13 +81,12 @@ object PDiff {
      *
      */
     object RGBAImage {
-        def apply(file: java.io.File): RGBAImage = {
-            import javax.imageio.ImageIO
+        def apply(file: File): RGBAImage = apply(ImageIO.read(file))
 
-            val input = new java.io.FileInputStream(file)
-            val image = ImageIO.read(input)
+        def apply(image: BufferedImage): RGBAImage = {
             val width = image.getWidth
             val height = image.getHeight
+
             val data = new Array[Long](width*height)
 
             for (y <- 0 until height) {
@@ -220,8 +223,6 @@ object PDiff {
     }
 
     case class CompareArgs(
-        imgA: RGBAImage,                   // Image A
-        imgB: RGBAImage,                   // Image B
         imgDiff: Option[RGBAImage] = None, // Diff image
         verbose: Boolean = false,          // Print lots of text or not
         luminanceOnly: Boolean = false,    // Only consider luminance; ignore chroma channels in the comparison.
@@ -247,16 +248,22 @@ object PDiff {
     case object WrongDimensions extends CompareFailure
     case class Different(pixels_failed: Int) extends CompareFailure
 
-    def compare(args: CompareArgs): CompareResult = {
-        if ((args.imgA.width != args.imgB.width) || (args.imgA.height != args.imgB.height)) {
+    def compare(imgA: File, imgB: File): CompareResult = compare(imgA, imgB, CompareArgs())
+    def compare(imgA: File, imgB: File, args: CompareArgs): CompareResult = compare(RGBAImage(imgA), RGBAImage(imgB), args)
+
+    def compare(imgA: BufferedImage, imgB: BufferedImage): CompareResult = compare(imgA, imgB, CompareArgs())
+    def compare(imgA: BufferedImage, imgB: BufferedImage, args: CompareArgs): CompareResult = compare(RGBAImage(imgA), RGBAImage(imgB), args)
+
+    def compare(imgA: RGBAImage, imgB: RGBAImage, args: CompareArgs): CompareResult = {
+        if ((imgA.width != imgB.width) || (imgA.height != imgB.height)) {
             return WrongDimensions
         }
 
-        if (args.imgA.data sameElements args.imgB.data) {
+        if (imgA.data sameElements imgB.data) {
             return Identical
         }
 
-        val dim = args.imgA.width*args.imgA.height
+        val dim = imgA.width*imgA.height
 
         // assuming colorspaces are in Adobe RGB (1998) convert to XYZ
         val aX: Array[Float] = new Array(dim)
@@ -275,17 +282,17 @@ object PDiff {
 
         if (args.verbose) println("Converting RGB to XYZ")
 
-        val w = args.imgA.width
-        val h = args.imgA.height
+        val w = imgA.width
+        val h = imgA.height
 
         for (y <- 0 until h) {
             for (x <- 0 until w) {
                 val i = x + y*w
 
                 {
-                    val r: Float = math.pow(args.imgA.getRed(i)   / 255.0f, args.gamma).toFloat
-                    val g: Float = math.pow(args.imgA.getGreen(i) / 255.0f, args.gamma).toFloat
-                    val b: Float = math.pow(args.imgA.getBlue(i)  / 255.0f, args.gamma).toFloat
+                    val r: Float = math.pow(imgA.getRed(i)   / 255.0f, args.gamma).toFloat
+                    val g: Float = math.pow(imgA.getGreen(i) / 255.0f, args.gamma).toFloat
+                    val b: Float = math.pow(imgA.getBlue(i)  / 255.0f, args.gamma).toFloat
                     val (aXi, aYi, aZi) = AdobeRGBToXYZ(r, g, b)
                     aX(i) = aXi; aY(i) = aYi; aZ(i) = aZi
                     val (_, aAi, aBi) = XYZToLAB(aX(i), aY(i), aZ(i))
@@ -293,9 +300,9 @@ object PDiff {
                 }
 
                 {
-                    val r: Float = math.pow(args.imgB.getRed(i)   / 255.0f, args.gamma).toFloat
-                    val g: Float = math.pow(args.imgB.getGreen(i) / 255.0f, args.gamma).toFloat
-                    val b: Float = math.pow(args.imgB.getBlue(i)  / 255.0f, args.gamma).toFloat
+                    val r: Float = math.pow(imgB.getRed(i)   / 255.0f, args.gamma).toFloat
+                    val g: Float = math.pow(imgB.getGreen(i) / 255.0f, args.gamma).toFloat
+                    val b: Float = math.pow(imgB.getBlue(i)  / 255.0f, args.gamma).toFloat
                     val (bXi, bYi, bZi) = AdobeRGBToXYZ(r, g, b)
                     bX(i) = bXi; bY(i) = bYi; bZ(i) = bZi
                     val (_, bAi, bBi) = XYZToLAB(bX(i), bY(i), bZ(i))
