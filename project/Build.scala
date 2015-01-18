@@ -3,6 +3,10 @@ import Keys._
 
 import com.typesafe.sbt.SbtPgp
 
+object Dependencies {
+    val specs2 = "org.specs2" %% "specs2" % "2.3.11" % Test
+}
+
 object PDiffBuild extends Build {
     override lazy val settings = super.settings ++ Seq(
         organization := "io.continuum",
@@ -63,6 +67,7 @@ object PDiffBuild extends Build {
     )
 
     lazy val pdiffSettings = commonSettings ++ SbtPgp.settings ++ Seq(
+        libraryDependencies += Dependencies.specs2,
         initialCommands in Compile := "import io.continuum.pdiff._"
     )
 
