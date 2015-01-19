@@ -24,16 +24,28 @@ class PDiffSpec extends Specification {
     def mkImage(fn: (Int, Int) => Color): BufferedImage = mkImage(100, 100)(fn)
 
     "PDiff" should {
-        "support succeed on identical images" in {
-            val white0 = mkImage((_, _) => Color.white)
-            val white1 = mkImage((_, _) => Color.white)
-            compare(white0, white1) === Identical
+        "succeed on identical images" in {
+            val imgA = mkImage((_, _) => Color.white)
+            val imgB = mkImage((_, _) => Color.white)
+            compare(imgA, imgB) === Identical
         }
 
-        "support fail on different images" in {
-            val white0 = mkImage((_, _) => Color.white)
-            val black0 = mkImage((_, _) => Color.black)
-            compare(white0, black0) === Different(10000)
+        "succeed on indistinguishable images" in {
+            val imgA = mkImage((_, _) => Color.white)
+            val imgB = mkImage { case (0, y) if y < 99 => Color.black; case _ => Color.white }
+            compare(imgA, imgB) === Indistinguishable(99)
+        }
+
+        "fail on different images" in {
+            val imgA = mkImage((_, _) => Color.white)
+            val imgB = mkImage((_, _) => Color.black)
+            compare(imgA, imgB) === Different(10000)
+        }
+
+        "fail on images with wrong dimensions" in {
+            val imgA = mkImage(100, 100)((_, _) => Color.white)
+            val imgB = mkImage(100, 200)((_, _) => Color.white)
+            compare(imgA, imgB) === WrongDimensions
         }
     }
 }
