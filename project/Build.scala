@@ -9,7 +9,7 @@ object Dependencies {
 
 object PDiffBuild extends Build {
     override lazy val settings = super.settings ++ Seq(
-        organization := "io.continuum",
+        organization := "io.continuum.pdiff",
         version := "0.1-SNAPSHOT",
         description := "Scala implementation of PerceptualDiff (http://pdiff.sourceforge.net)",
         homepage := Some(url("http://bokeh.github.io/pdiff")),
